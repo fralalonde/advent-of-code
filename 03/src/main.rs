@@ -4,137 +4,138 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use anyhow::*;
 
-fn wire(ops: &[usize], i: usize) -> usize {
-    let idx = ops[i];
-    ops[idx]
-}
-
-fn whoo(ops: &mut Vec<usize>, i: usize, set: usize){
-    let idx = ops[i];
-    ops[idx] = set
-}
-
-fn run(mut pos: Vec<usize>, a: usize, b: usize) -> Result<usize> {
-    let mut i = 0;
-
-    pos[1] = a;
-    pos[2] = b;
-    loop {
-        let op = pos[i];
-        match op {
-            1 => {
-                let a =  what(&pos, i + 1);
-                let b =  what(&pos, i + 2);
-                whoo(&mut pos, i+ 3,  a + b)
-            }
-            2 => {
-                let a =  what(&pos, i + 1);
-                let b =  what(&pos, i + 2);
-                whoo(&mut pos, i+ 3,  a * b)
-            }
-            99 => break,
-            _ => return Err(anyhow!("Mfuck")),
-        };
-        i += 4;
-    }
-    Ok(pos[0])
-}
-
-enum Direction {
-    Up(len),
-    Right(len),
-    Down(len),
-    Left(len),
-}
-
-impl Direction {
-    fn parallel(&self, other: &Self) -> bool {
-        (self.horizontal() && other.horizontal()) || (!self.horizontal() && !other.horizontal())
-    }
-
-    fn horizontal(&self) -> bool {
-        self == Direction::Right || self == Direction::Left
-    }
-}
-
-#[derive(Clone)]
-struct Point {
+#[derive(Debug)]
+struct Line {
     x: isize,
     y: isize,
-}
-
-struct Line {
-    origin: Point,
-    direct: Direction,
+    horizontal: bool,
+    len: isize
 }
 
 impl Line {
-    fn intersect(&self, other: &Line) -> Option<Point> {
-        if self.parallel(other) {return None}
-        self.in_range(other) && other.in_range(self)
-    }
-
-    fn in_range(&self, other: &Line) -> Option<Point> {
-        match self.direct {
-            Direction::Up(z) => other.origin.x <= self.origin.x && other.origin.x >= (self.origin.x - z)
-            Direction::Right(z) => other.origin.x <= self.origin.x && other.origin.x >= (self.origin.x - z)
-            Direction::Down(z) => other.origin.x <= self.origin.x && other.origin.x >= (self.origin.x - z)
-            Direction::Left(z) => other.origin.x <= self.origin.x && other.origin.x >= (self.origin.x - z)
+    fn in_range(&self, z: isize) -> bool {
+        if self.horizontal {
+            if self.len > 0 {
+                z >= self.x && z <= self.x + self.len
+            } else {
+                z >= self.x + self.len && z <= self.x
+            }
+        } else {
+            if self.len > 0 {
+                z >= self.y && z <= self.y + self.len
+            } else {
+                z >= self.y + self.len && z <= self.y
+            }
         }
     }
 
-    fn terminal(&self) -> Point {
-        match self.direct {
-            Direction::Up(len) =>  Point{x: self.x, y : self.y + len},
-            Direction::Right(len) =>  Point{x: self.x + len, y : self.y},
-            Direction::Down(len) =>  Point{x: self.x, y : self.y - len},
-            Direction::Left(len) =>  Point{x: self.x - len, y : self.y},
+    fn intersect(&self, other: &Line) -> Option<(isize, isize)> {
+        if self.horizontal == other.horizontal {return None}
+        if self.horizontal {
+            if other.in_range(self.y) && self.in_range(other.x) {
+                return Some((other.x, self.y))
+            }
+        } else {
+            if other.in_range(self.x) && self.in_range(other.y) {
+                return Some((self.x, other.y))
+            }
+        }
+        None
+    }
+
+    fn end(&self) -> (isize, isize) {
+        if self.horizontal {
+            (self.x + self.len, self.y)
+        } else {
+            (self.x, self.y+ self.len)
         }
     }
 }
 
 fn main() -> Result<()> {
-    let f = File::open("02/input")?;
+    let f = File::open("03/input")?;
     let file = BufReader::new(&f);
-    let mut wires: Vec<String> = file.lines().into_iter()
+    let wires: Vec<String> = file.lines().into_iter()
         .filter_map(|x| x.ok())
         .collect();
 
     let mut lines: Vec<Vec<Line>> = vec![];
-    let mut orig: Point = Point{x:0,y:0};
     for wire in wires {
-        for lines in wire.split(",") {
-
+        let mut start = (0, 0);
+        let mut l = vec![];
+        let zz: Vec<&str> = wire.split(",").collect();
+        for w in zz {
+            let (d, len) = w.split_at(1);
+            let len = len.parse::<isize>()?;
+            let (horizontal, len) = match d {
+                "U" => (false, len),
+                "D" => (false, -len),
+                "R" => (true, len),
+                "L" => (true, -len),
+                _ => return Err(anyhow!("fuck"))
+            };
+            let mew = Line{x:start.0, y: start.1, horizontal, len};
+            println!("({}, {})", mew.end().0, mew.end().1);
+            start = mew.end();
+            l.push(mew)
         }
+        lines.push(l);
     }
 
+    // part 1
+    let mut dist =  std::isize::MAX;
+    let mut minsteps = std::isize::MAX;
 
-    wires.flat_map(|s| s.split(",")
-            .map(|x| x.clone().parse::<usize>().unwrap())
-            .collect::<Vec<usize>>())
-        .collect();
-
-    // part A
-    println!("A: {}", run(og.clone(), 12, 2)?);
-
-    // part B
-    'zzz:
-    for a in 0..99 {
-        for b in 0..99 {
-            if run(og.clone(), a, b)? == 19690720 {
-                println!("B {}", 100 * a + b);
-                break 'zzz;
+    let mut asteps = 0;
+    for a in &lines[0] {
+        let mut bsteps = 0;
+        for b in &lines[1] {
+            if let Some((x, y)) = b.intersect(&a) {
+                if x == 0 && y == 0 { continue }
+                println!("{:?} / {:?} \n @ {}, {}", b, a, x ,y);
+                let d = x.abs() + y.abs();
+                if dist > d {
+                    dist = d
+                }
+                let (ai, bi) = if a.horizontal {
+                    ((a.x - x).abs(), (b.y - y).abs())
+                } else {
+                    ((b.x - x).abs(), (a.y - y).abs())
+                };
+                let s = bsteps + asteps + ai + bi;
+                if s < minsteps {
+                    minsteps = s;
+                }
             }
+            bsteps += b.len.abs();
         }
+        asteps += a.len.abs();
     }
+
+    println!("min dist {}", dist);
+    println!("min steps {}", minsteps);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
+    use crate::Line;
 
     #[test]
-    fn wog() {
+    fn intersects() {
+        let a = Line{x: 0, y: 0, horizontal: true, len: 10};
+        let b = Line{x: 5, y: 5, horizontal: false, len: -10};
+        assert_eq!(a.intersect(&b), Some((5, 0)));
+        assert_eq!(b.intersect(&a), Some((5, 0)));
+
+        let c = Line{x:20, y: 20, horizontal: false, len: 40};
+        assert_eq!(a.intersect(&c), None);
+        assert_eq!(b.intersect(&c), None);
+
+        let d = Line{x:21, y: 19, horizontal: true, len: -3};
+        assert_eq!(c.intersect(&d), Some((20, 19)));
+        assert_eq!(d.intersect(&c), Some((20, 19)));
+
     }
 }
