@@ -31,6 +31,10 @@ enum OpCode {
     Mult = 02,
     Read = 03,
     Write = 04,
+    JumpIf = 05,
+    JumpIfNot = 06,
+    LessThan = 07,
+    Equals = 08,
 
     Halt = 99,
 }
@@ -115,6 +119,30 @@ impl  IntCodeMachine {
                     println!("{}", value);
 //                    self.output.push(value);
                 }
+                OpCode::JumpIf => {
+                    let a =  self.load();
+                    let b =  self.load();
+                    if a != 0 {
+                        self.cir = b as usize
+                    }
+                }
+                OpCode::JumpIfNot => {
+                    let a =  self.load();
+                    let b =  self.load();
+                    if a == 0 {
+                        self.cir = b as usize
+                    }
+                }
+                OpCode::LessThan => {
+                    let a =  self.load();
+                    let b =  self.load();
+                    self.store(if a < b {1} else {0});
+                }
+                OpCode::Equals => {
+                    let a =  self.load();
+                    let b =  self.load();
+                    self.store(if a == b {1} else {0});
+                }
                 OpCode::Halt => {
                     break
                 }
@@ -137,23 +165,36 @@ fn main() -> Result<()> {
             .collect::<Vec<isize>>())
         .collect();
 
+    // part B
+
     let input: Vec<isize> = vec![1];
-    {
-        let mut input_it = Box::new(input.into_iter());
+    let mut input_it = Box::new(input.into_iter());
 
-        let mut machine = IntCodeMachine {
-            memory,
-            cir: 0,
-            pmodes: 0,
-            input: input_it,
-            output: vec![],
-        };
+    let mut machine = IntCodeMachine {
+        memory: memory.clone(),
+        cir: 0,
+        pmodes: 0,
+        input: input_it,
+        output: vec![],
+    };
 
-        machine.run()?;
+    machine.run()?;
 
-        // part A
-        println!("A: {}", machine.memory[0]);
-    }
+    // part B
+
+    let input: Vec<isize> = vec![5];
+    let mut input_it = Box::new(input.into_iter());
+
+    let mut machine = IntCodeMachine {
+        memory: memory.clone(),
+        cir: 0,
+        pmodes: 0,
+        input: input_it,
+        output: vec![],
+    };
+
+    machine.run()?;
+
     Ok(())
 }
 
