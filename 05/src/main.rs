@@ -3,20 +3,29 @@ use std::io;
 use std::fs::File;
 use anyhow::*;
 use std::io::{BufReader, BufRead};
+use strum::*;
+use strum_macros::*;
 
-struct IntCodeMachine {
-    cir: usize,
-    pmodes: usize,
-    memory: Vec<isize>,
-    input: Box<Iterator<Item=isize>>,
-    output: Vec<isize>,
-}
-
+#[repr(usize)]
+#[derive(EnumIter,Debug, Clone, Copy)]
 enum PMode {
     Indirect = 0,
     Immediate = 1,
 }
 
+impl From<usize> for PMode {
+    fn from(a: usize) -> Self {
+        for z in PMode::iter() {
+            if z as usize == a {
+                return z
+            }
+        }
+        panic!("no such pmode {}", a)
+    }
+}
+
+#[repr(usize)]
+#[derive(EnumIter,Debug, Clone, Copy)]
 enum OpCode {
     Add = 01,
     Mult = 02,
@@ -26,29 +35,45 @@ enum OpCode {
     Halt = 99,
 }
 
+impl From<usize> for OpCode {
+    fn from(a: usize) -> Self {
+        for z in OpCode::iter() {
+            if z as usize == a {
+                return z
+            }
+        }
+        panic!("no such opcode: {}", a)
+    }
+}
+
+
+struct IntCodeMachine {
+    cir: usize,
+    pmodes: usize,
+    memory: Vec<isize>,
+    input: Box<Iterator<Item=isize>>,
+    output: Vec<isize>,
+}
+
 impl  IntCodeMachine {
     fn load(&mut self) -> isize {
-        let addr = self.memory[self.cir] as usize;
+        let param = self.memory[self.cir];
         self.cir += 1;
         match self.pmode() {
-            PMode::Immediate => self.memory[addr],
-            PMode::Indirect => {
-                let addr = self.memory[addr] as usize;
-                self.memory[addr]
-            }
+            PMode::Immediate => param,
+            PMode::Indirect => self.memory[param as usize]
         }
     }
 
     fn store(&mut self, value: isize){
-        let addr = self.memory[self.cir] as usize;
+        let ptr = self.memory[self.cir] as usize;
         self.cir += 1;
         // "Parameters that an instruction writes to will never be in immediate mode."
-        let addr = self.memory[addr] as usize;
-        self.memory[addr] = value
+        self.memory[ptr] = value
     }
 
     pub fn init(&mut self, a: isize, b: isize) {
-        let mut cir = 0;
+        self.cir = 0;
         self.memory[1] = a;
         self.memory[2] = b;
     }
@@ -58,19 +83,19 @@ impl  IntCodeMachine {
         self.cir += 1;
         let opcode = op % 100;
         self.pmodes = op / 100;
-        opcode as OpCode
+        OpCode::from(opcode)
     }
 
     fn pmode(&mut self) -> PMode {
         let pmode = self.pmodes % 10;
         self.pmodes /= 10;
-        pmode as PMode
+        PMode::from(pmode)
     }
 
     pub fn run(&mut self) -> Result<()> {
         loop {
-            let op = self.decode();
-            match op.code {
+            let opcode = self.decode();
+            match opcode {
                 OpCode::Add => {
                     let a =  self.load();
                     let b =  self.load();
@@ -87,7 +112,8 @@ impl  IntCodeMachine {
                 }
                 OpCode::Write => {
                     let value = self.load();
-                    self.output.push(value);
+                    println!("{}", value);
+//                    self.output.push(value);
                 }
                 OpCode::Halt => {
                     break
@@ -107,28 +133,27 @@ fn main() -> Result<()> {
     let mut memory: Vec<isize> = file.lines().into_iter()
         .filter_map(|x| x.ok())
         .flat_map(|s| s.split(",")
-            .map(|x| x.clone().parse::<usize>().unwrap())
+            .map(|x| x.clone().parse::<isize>().unwrap())
             .collect::<Vec<isize>>())
         .collect();
 
-    let input = vec![1];
-    let mut input_it = Box::new(input.iter());
+    let input: Vec<isize> = vec![1];
+    {
+        let mut input_it = Box::new(input.into_iter());
 
-    let mut machine = IntCodeMachine{
-        memory,
-        cir: 0,
-        pmodes: 0,
-        input: input_it,
-        output: vec![],
-    };
+        let mut machine = IntCodeMachine {
+            memory,
+            cir: 0,
+            pmodes: 0,
+            input: input_it,
+            output: vec![],
+        };
 
-    machine.init(12,2);
+        machine.run()?;
 
-    machine.run()?;
-
-    // part A
-    println!("A: {}", machine.memory[0]);
-
+        // part A
+        println!("A: {}", machine.memory[0]);
+    }
     Ok(())
 }
 
