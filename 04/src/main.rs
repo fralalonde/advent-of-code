@@ -5,46 +5,55 @@ use anyhow::*;
 use std::ops::Range;
 use std::cmp::max;
 
-const MAX_DEPTH: usize = 5;
-
-//const MAX_VAL: usize = 769058;
-//const OG: [usize; 6] = [3,0,7,2,3,7];
-
-const MAX_VAL: usize = 888889;
-const OG: [usize; 6] = [8,8,8,8,8,8];
-
 /// returns true if max has been reached
-fn lap(mut d: usize, pre_v: usize, pre_i: usize, seq: bool, comb: &mut usize) -> bool {
-    let start = max(pre_i, OG[d]);
-    let seq = seq || pre_i == start;
+fn lap(og: &[usize], max_v: usize, mut d: usize, pre_v: usize, pre_i: usize, pseq: bool, comb: &mut usize) -> bool {
+    let start = max(pre_i, og[d]);
+    let pre_v = pre_v * 10;
     for i in start..10 {
-        match d {
-            MAX_DEPTH => {
-                if !seq { return false }
-                if pre_v + i > MAX_VAL { return true };
-                *comb += 1;
+        let z = pre_v + i;
+        if z >= max_v { return true };
+        let seq = if d > 0 {pseq || pre_i == i} else {false};
+        if d == og.len() - 1 {
+            if seq {
+                println!("{}", z);
+                *comb += 1
             }
-            _ => if lap(d + 1, pre_v * 10  + i, i, seq, comb) { return true }
+        } else {
+            if lap(og, max_v, d + 1, z, i, seq, comb) { return true }
         }
     }
     false
 }
 
+fn count(og: &[usize], max_v: usize) -> usize {
+    let mut comb: usize = 0;
+    lap(og, max_v, 0, 0, 0, false, &mut comb);
+    comb
+}
 
 fn main() -> Result<()> {
 
-    let mut comb: usize = 0;
-    lap(0, 0, 0, false, &mut comb);
+    let c = count(&[3,0,7,2,3,7], 769058);
 
-    println!("comb {}", comb);
+    println!("comb {}", c);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
+    use crate::count;
 
     #[test]
-    fn bop() {
+    fn chin() {
+        let c = count(&[0, 0], 99);
+        println!("comb {}", c);
+
+        let c = count(&[5, 3, 2], 874);
+        println!("comb {}", c);
+
+        let c = count(&[5, 3, 2], 421);
+        println!("comb {}", c);
+
     }
 }
