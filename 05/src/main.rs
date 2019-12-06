@@ -56,7 +56,6 @@ struct IntCodeMachine {
     pmodes: usize,
     memory: Vec<isize>,
     input: Box<Iterator<Item=isize>>,
-    output: Vec<isize>,
 }
 
 impl  IntCodeMachine {
@@ -74,12 +73,6 @@ impl  IntCodeMachine {
         self.cir += 1;
         // "Parameters that an instruction writes to will never be in immediate mode."
         self.memory[ptr] = value
-    }
-
-    pub fn init(&mut self, a: isize, b: isize) {
-        self.cir = 0;
-        self.memory[1] = a;
-        self.memory[2] = b;
     }
 
     fn decode(&mut self) -> OpCode {
@@ -175,7 +168,6 @@ fn main() -> Result<()> {
         cir: 0,
         pmodes: 0,
         input: input_it,
-        output: vec![],
     };
 
     machine.run()?;
@@ -190,7 +182,6 @@ fn main() -> Result<()> {
         cir: 0,
         pmodes: 0,
         input: input_it,
-        output: vec![],
     };
 
     machine.run()?;

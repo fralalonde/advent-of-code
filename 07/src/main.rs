@@ -5,7 +5,7 @@ use std::io::{BufReader, BufRead};
 use anyhow::*;
 
 fn main() -> Result<()> {
-    let f = File::open("06/input")?;
+    let f = File::open("07/input")?;
     let file = BufReader::new(&f);
     let wires: Vec<String> = file.lines().into_iter()
         .filter_map(|x| x.ok())

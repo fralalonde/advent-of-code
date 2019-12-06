@@ -1,12 +1,7 @@
-use std::io;
-use std::fs::File;
-use std::io::{BufReader, BufRead};
 use anyhow::*;
-use std::ops::Range;
-use std::cmp::{max, min};
 
 /// returns true if max has been reached
-fn lap(og: &mut [usize], max_v: usize, mut d: usize, pre_v: usize, pre_i: usize, pseq: bool, comb: &mut usize) -> bool {
+fn lap(og: &mut [usize], max_v: usize, d: usize, pre_v: usize, pre_i: usize, pseq: bool, comb: &mut usize) -> bool {
     let start = if pre_i > og[d] {
         for z in d..og.len() {
             og[z] = pre_i;
@@ -31,7 +26,7 @@ fn lap(og: &mut [usize], max_v: usize, mut d: usize, pre_v: usize, pre_i: usize,
     false
 }
 
-fn lop(og: &mut [usize], max_v: usize, mut d: usize, pre_v: usize, pre_i: usize, pseq: bool, comb: &mut usize) -> bool {
+fn lop(og: &mut [usize], max_v: usize, d: usize, pre_v: usize, pre_i: usize, pseq: bool, comb: &mut usize) -> bool {
     let start = if pre_i > og[d] {
         for z in d..og.len() {
             og[z] = pre_i;
@@ -89,16 +84,16 @@ mod test {
 
     #[test]
     fn chin() {
-        let c = count(&[0, 0], 99);
+        let c = count(&mut [0, 0], 99);
         println!("comb {}", c);
 
-        let c = count(&[5, 3, 2], 874);
+        let c = count(&mut [5, 3, 2], 874);
         println!("comb {}", c);
 
-        let c = count(&[5, 3, 2], 421);
+        let c = count(&mut [5, 3, 2], 421);
         println!("comb {}", c);
 
-        let c = count(&[5, 3], 89);
+        let c = count(&mut [5, 3], 89);
         println!("comb {}", c);
 
     }
