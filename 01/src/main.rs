@@ -1,7 +1,7 @@
 use std::io;
 //use std::env;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufRead, BufReader};
 
 fn ratio(mass: i32) -> i32 {
     mass / 3 - 2
@@ -18,27 +18,35 @@ fn req_fuel(mass: i32) -> i32 {
 fn main() -> io::Result<()> {
     let f = File::open("01/input")?;
     let file = BufReader::new(&f);
-    println!("A {}", file.lines().into_iter()
-        .filter_map(|x| x.ok())
-        .filter_map(|s| s.parse::<i32>().ok())
-        .map(|x| x / 3 - 2)
-        .sum::<i32>());
+    println!(
+        "A {}",
+        file.lines()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter_map(|s| s.parse::<i32>().ok())
+            .map(|x| x / 3 - 2)
+            .sum::<i32>()
+    );
 
     let f = File::open("01/input")?;
     let file = BufReader::new(&f);
-    println!("B {}", file.lines().into_iter()
-        .filter_map(|x| x.ok())
-        .filter_map(|s| s.parse::<i32>().ok())
-        .map(|x| x / 3 - 2)
-        .map(req_fuel)
-        .sum::<i32>());
+    println!(
+        "B {}",
+        file.lines()
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter_map(|s| s.parse::<i32>().ok())
+            .map(|x| x / 3 - 2)
+            .map(req_fuel)
+            .sum::<i32>()
+    );
 
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{req_fuel, ratio};
+    use crate::{ratio, req_fuel};
 
     #[test]
     fn wog() {

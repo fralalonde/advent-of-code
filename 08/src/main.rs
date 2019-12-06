@@ -1,15 +1,13 @@
 use std::io;
 //use std::env;
-use std::fs::File;
-use std::io::{BufReader, BufRead};
 use anyhow::*;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 fn main() -> Result<()> {
     let f = File::open("08/input")?;
     let file = BufReader::new(&f);
-    let wires: Vec<String> = file.lines().into_iter()
-        .filter_map(|x| x.ok())
-        .collect();
+    let wires: Vec<String> = file.lines().into_iter().filter_map(|x| x.ok()).collect();
 
     println!("min steps");
 
@@ -20,6 +18,5 @@ fn main() -> Result<()> {
 mod test {
 
     #[test]
-    fn tests() {
-    }
+    fn tests() {}
 }

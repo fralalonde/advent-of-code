@@ -1,15 +1,15 @@
 use std::io;
 //use std::env;
-use std::fs::File;
-use std::io::{BufReader, BufRead};
 use anyhow::*;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 fn what(ops: &[usize], i: usize) -> usize {
     let idx = ops[i];
     ops[idx]
 }
 
-fn whoo(ops: &mut Vec<usize>, i: usize, set: usize){
+fn whoo(ops: &mut Vec<usize>, i: usize, set: usize) {
     let idx = ops[i];
     ops[idx] = set
 }
@@ -23,14 +23,14 @@ fn run(mut pos: Vec<usize>, a: usize, b: usize) -> Result<usize> {
         let op = pos[i];
         match op {
             1 => {
-                let a =  what(&pos, i + 1);
-                let b =  what(&pos, i + 2);
-                whoo(&mut pos, i+ 3,  a + b)
+                let a = what(&pos, i + 1);
+                let b = what(&pos, i + 2);
+                whoo(&mut pos, i + 3, a + b)
             }
             2 => {
-                let a =  what(&pos, i + 1);
-                let b =  what(&pos, i + 2);
-                whoo(&mut pos, i+ 3,  a * b)
+                let a = what(&pos, i + 1);
+                let b = what(&pos, i + 2);
+                whoo(&mut pos, i + 3, a * b)
             }
             99 => break,
             _ => return Err(anyhow!("Mfuck")),
@@ -43,19 +43,22 @@ fn run(mut pos: Vec<usize>, a: usize, b: usize) -> Result<usize> {
 fn main() -> Result<()> {
     let f = File::open("02/input")?;
     let file = BufReader::new(&f);
-    let mut og: Vec<usize> = file.lines().into_iter()
+    let mut og: Vec<usize> = file
+        .lines()
+        .into_iter()
         .filter_map(|x| x.ok())
-        .flat_map(|s| s.split(",")
-            .map(|x| x.clone().parse::<usize>().unwrap())
-            .collect::<Vec<usize>>())
+        .flat_map(|s| {
+            s.split(",")
+                .map(|x| x.clone().parse::<usize>().unwrap())
+                .collect::<Vec<usize>>()
+        })
         .collect();
 
     // part A
     println!("A: {}", run(og.clone(), 12, 2)?);
 
     // part B
-    'zzz:
-    for a in 0..99 {
+    'zzz: for a in 0..99 {
         for b in 0..99 {
             if run(og.clone(), a, b)? == 19690720 {
                 println!("B {}", 100 * a + b);
@@ -71,6 +74,5 @@ fn main() -> Result<()> {
 mod test {
 
     #[test]
-    fn wog() {
-    }
+    fn wog() {}
 }

@@ -1,13 +1,13 @@
 use std::io;
 //use std::env;
-use std::fs::File;
 use anyhow::*;
-use std::io::{BufReader, BufRead};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use strum::*;
 use strum_macros::*;
 
 #[repr(usize)]
-#[derive(EnumIter,Debug, Clone, Copy)]
+#[derive(EnumIter, Debug, Clone, Copy)]
 enum PMode {
     Indirect = 0,
     Immediate = 1,
@@ -17,7 +17,7 @@ impl From<usize> for PMode {
     fn from(a: usize) -> Self {
         for z in PMode::iter() {
             if z as usize == a {
-                return z
+                return z;
             }
         }
         panic!("no such pmode {}", a)
@@ -25,7 +25,7 @@ impl From<usize> for PMode {
 }
 
 #[repr(usize)]
-#[derive(EnumIter,Debug, Clone, Copy)]
+#[derive(EnumIter, Debug, Clone, Copy)]
 enum OpCode {
     Add = 01,
     Mult = 02,
@@ -43,32 +43,31 @@ impl From<usize> for OpCode {
     fn from(a: usize) -> Self {
         for z in OpCode::iter() {
             if z as usize == a {
-                return z
+                return z;
             }
         }
         panic!("no such opcode: {}", a)
     }
 }
 
-
 struct IntCodeMachine {
     cir: usize,
     pmodes: usize,
     memory: Vec<isize>,
-    input: Box<Iterator<Item=isize>>,
+    input: Box<Iterator<Item = isize>>,
 }
 
-impl  IntCodeMachine {
+impl IntCodeMachine {
     fn load(&mut self) -> isize {
         let param = self.memory[self.cir];
         self.cir += 1;
         match self.pmode() {
             PMode::Immediate => param,
-            PMode::Indirect => self.memory[param as usize]
+            PMode::Indirect => self.memory[param as usize],
         }
     }
 
-    fn store(&mut self, value: isize){
+    fn store(&mut self, value: isize) {
         let ptr = self.memory[self.cir] as usize;
         self.cir += 1;
         // "Parameters that an instruction writes to will never be in immediate mode."
@@ -94,13 +93,13 @@ impl  IntCodeMachine {
             let opcode = self.decode();
             match opcode {
                 OpCode::Add => {
-                    let a =  self.load();
-                    let b =  self.load();
+                    let a = self.load();
+                    let b = self.load();
                     self.store(a + b);
                 }
                 OpCode::Mult => {
-                    let a =  self.load();
-                    let b =  self.load();
+                    let a = self.load();
+                    let b = self.load();
                     self.store(a * b);
                 }
                 OpCode::Read => {
@@ -110,52 +109,52 @@ impl  IntCodeMachine {
                 OpCode::Write => {
                     let value = self.load();
                     println!("{}", value);
-//                    self.output.push(value);
+                    //                    self.output.push(value);
                 }
                 OpCode::JumpIf => {
-                    let a =  self.load();
-                    let b =  self.load();
+                    let a = self.load();
+                    let b = self.load();
                     if a != 0 {
                         self.cir = b as usize
                     }
                 }
                 OpCode::JumpIfNot => {
-                    let a =  self.load();
-                    let b =  self.load();
+                    let a = self.load();
+                    let b = self.load();
                     if a == 0 {
                         self.cir = b as usize
                     }
                 }
                 OpCode::LessThan => {
-                    let a =  self.load();
-                    let b =  self.load();
-                    self.store(if a < b {1} else {0});
+                    let a = self.load();
+                    let b = self.load();
+                    self.store(if a < b { 1 } else { 0 });
                 }
                 OpCode::Equals => {
-                    let a =  self.load();
-                    let b =  self.load();
-                    self.store(if a == b {1} else {0});
+                    let a = self.load();
+                    let b = self.load();
+                    self.store(if a == b { 1 } else { 0 });
                 }
-                OpCode::Halt => {
-                    break
-                }
+                OpCode::Halt => break,
                 _ => return Err(anyhow!("Mfuck")),
             };
         }
         Ok(())
     }
-
 }
-
 
 fn main() -> Result<()> {
     let f = File::open("05/input")?;
     let file = BufReader::new(&f);
-    let mut memory: Vec<isize> = file.lines().into_iter()
+    let mut memory: Vec<isize> = file
+        .lines()
+        .into_iter()
         .filter_map(|x| x.ok())
-        .flat_map(|s| s.split(",")
-            .map(|x| x.clone().parse::<isize>().unwrap())
-            .collect::<Vec<isize>>())
+        .flat_map(|s| {
+            s.split(",")
+                .map(|x| x.clone().parse::<isize>().unwrap())
+                .collect::<Vec<isize>>()
+        })
         .collect();
 
     // part B
@@ -193,6 +192,5 @@ fn main() -> Result<()> {
 mod test {
 
     #[test]
-    fn tests() {
-    }
+    fn tests() {}
 }
