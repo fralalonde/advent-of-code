@@ -1,5 +1,3 @@
-use std::io;
-//use std::env;
 use anyhow::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -54,7 +52,7 @@ struct IntCodeMachine {
     cir: usize,
     pmodes: usize,
     memory: Vec<isize>,
-    input: Box<Iterator<Item = isize>>,
+    input: Box<dyn Iterator<Item = isize>>,
 }
 
 impl IntCodeMachine {
@@ -91,6 +89,7 @@ impl IntCodeMachine {
     pub fn run(&mut self) -> Result<()> {
         loop {
             let opcode = self.decode();
+//            println!("opcode {:?}", opcode);
             match opcode {
                 OpCode::Add => {
                     let a = self.load();
@@ -108,8 +107,7 @@ impl IntCodeMachine {
                 }
                 OpCode::Write => {
                     let value = self.load();
-                    println!("{}", value);
-                    //                    self.output.push(value);
+                    println!("output {}", value);
                 }
                 OpCode::JumpIf => {
                     let a = self.load();
@@ -136,7 +134,6 @@ impl IntCodeMachine {
                     self.store(if a == b { 1 } else { 0 });
                 }
                 OpCode::Halt => break,
-                _ => return Err(anyhow!("Mfuck")),
             };
         }
         Ok(())
@@ -146,7 +143,7 @@ impl IntCodeMachine {
 fn main() -> Result<()> {
     let f = File::open("05/input")?;
     let file = BufReader::new(&f);
-    let mut memory: Vec<isize> = file
+    let memory: Vec<isize> = file
         .lines()
         .into_iter()
         .filter_map(|x| x.ok())
@@ -157,10 +154,10 @@ fn main() -> Result<()> {
         })
         .collect();
 
-    // part B
+    // part A
 
     let input: Vec<isize> = vec![1];
-    let mut input_it = Box::new(input.into_iter());
+    let input_it = Box::new(input.into_iter());
 
     let mut machine = IntCodeMachine {
         memory: memory.clone(),
@@ -174,7 +171,7 @@ fn main() -> Result<()> {
     // part B
 
     let input: Vec<isize> = vec![5];
-    let mut input_it = Box::new(input.into_iter());
+    let input_it = Box::new(input.into_iter());
 
     let mut machine = IntCodeMachine {
         memory: memory.clone(),
