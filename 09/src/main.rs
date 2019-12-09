@@ -52,7 +52,7 @@ impl From<usize> for OpCode {
     }
 }
 
-const PAGE_SIZE: usize = 65536;
+const PAGE_SIZE: usize = 4096;
 
 struct IntCodeMachine {
     cir: usize,
@@ -60,19 +60,29 @@ struct IntCodeMachine {
     pmodes: usize,
     pages: HashMap<usize, Vec<isize>>,
     input: Receiver<isize>,
-    output: SyncSender<isize>,
+    _output: SyncSender<isize>,
 }
 
 impl IntCodeMachine {
-    fn new(input: Receiver<isize>, output: SyncSender<isize>) -> Self {
+    fn new(input: Receiver<isize>, _output: SyncSender<isize>) -> Self {
         IntCodeMachine {
             cir: 0,
             rel: 0,
             pmodes: 0,
             pages: HashMap::new(),
             input,
-            output
+            _output
         }
+    }
+    
+    fn init(&mut self, program: &[isize]) {
+        self.cir = 0;
+        self.rel = 0;
+        self.pages = HashMap::new();
+        for i in program {
+            self.push(*i);
+        }
+        self.cir = 0;        
     }
 
     fn load(&mut self) -> isize {
@@ -100,14 +110,14 @@ impl IntCodeMachine {
         self.cir += 1;
     }
 
-    fn clean_page() -> Vec<isize> {
+    fn new_page() -> Vec<isize> {
         Vec::with_capacity(PAGE_SIZE)
     }
 
     fn paged(&mut self, addr: usize) -> &mut isize {
         let page = addr / PAGE_SIZE;
         let offset = addr - (page * PAGE_SIZE);
-        unsafe { self.pages.entry(page).or_insert(Self::clean_page()).get_unchecked_mut(offset) }
+        unsafe { self.pages.entry(page).or_insert(Self::new_page()).get_unchecked_mut(offset) }
     }
 
     fn decode(&mut self) -> OpCode {
@@ -196,28 +206,21 @@ fn main() -> Result<()> {
         .collect();
 
     let (in_sender, in_recv) = sync_channel(2);
-    let (out_sender, out_recv) = sync_channel(2);
+    let (out_sender, _out_recv) = sync_channel(2);
     let mut machine = IntCodeMachine::new(in_recv, out_sender);
 
-
     // part A
-    for i in &program {
-        machine.push(*i);
-    }
-    machine.cir = 0;
+    machine.init(&program);
     in_sender.send(1)?;
     machine.run()?;
 
     // part B
-    machine.cir = 0;
-    machine.rel = 0;
-    machine.pages = HashMap::new();
-    for i in &program {
-        machine.push(*i);
-    }
-    machine.cir = 0;
+    machine.init(&program);
     in_sender.send(2)?;
     machine.run()?;
+
+    println!();
+    println!("page size: {} pages: {}", PAGE_SIZE, machine.pages.len());
 
     Ok(())
 }
