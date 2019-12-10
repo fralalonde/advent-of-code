@@ -44,7 +44,7 @@ fn lop(
     d: usize,
     pre_v: usize,
     pre_i: usize,
-    pseq: bool,
+    mut pseq: usize,
     comb: &mut usize,
 ) -> bool {
     let start = if pre_i > og[d] {
@@ -61,14 +61,23 @@ fn lop(
         if z >= max_v {
             return true;
         };
-        let seq = (pre_i == i) && !pseq;
         if d == og.len() - 1 {
-            if seq {
-                println!("{}", z);
+             if pseq == 0 || (pseq ==1 && pre_i == i) {
                 *comb += 1
             }
         } else {
-            if lap(og, max_v, d + 1, z, i, seq, comb) {
+            if pseq > 0 {
+                if pre_i == i {
+                    if pseq == 2 {
+                        break
+                    } else {
+                        pseq += 1
+                    }
+                } else if pseq == 2 {
+                    pseq = 0
+                }
+            }
+            if lop(og, max_v, d + 1, z, i, pseq, comb) {
                 return true;
             }
         }
@@ -84,18 +93,18 @@ fn count(og: &mut [usize], max_v: usize) -> usize {
 
 fn count2(og: &mut [usize], max_v: usize) -> usize {
     let mut comb: usize = 0;
-    lop(og, max_v, 0, 0, 0, false, &mut comb);
+    lop(og, max_v, 0, 0, 0, 1, &mut comb);
     comb
 }
 
 fn main() -> Result<()> {
     let c = count(&mut [3, 0, 7, 2, 3, 7], 769058);
 
-    println!("comb {}", c);
+    println!("Part 1 {}", c);
 
     let c = count2(&mut [3, 0, 7, 2, 3, 7], 769058);
 
-    println!("partb {}", c);
+    println!("Part 2 {}", c);
 
     Ok(())
 }
