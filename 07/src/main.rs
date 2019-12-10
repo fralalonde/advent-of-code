@@ -9,12 +9,11 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use futures_channel::mpsc::*;
 use futures::stream::Stream;
-use async_std::*;
-use async_task::*;
 use std::cell::RefCell;
 use futures::task::Poll;
 use futures::future::PollFn;
-use futures::{StreamExt, SinkExt};
+use futures::{StreamExt, SinkExt, Future};
+use futures_executor::LocalPool;
 
 #[repr(usize)]
 #[derive(EnumIter, Debug, Clone, Copy)]
@@ -61,6 +60,7 @@ impl From<usize> for OpCode {
 }
 
 struct IntCodeMachine {
+    name: String,
     cir: usize,
     pmodes: usize,
     memory: Vec<isize>,
@@ -73,8 +73,9 @@ struct RecvPoll {
 }
 
 impl IntCodeMachine {
-    fn new(memory: Vec<isize>, input: Receiver<isize>, output: Sender<isize>) -> Self {
+    fn new(name: String, memory: Vec<isize>, input: Receiver<isize>, output: Sender<isize>) -> Self {
         IntCodeMachine {
+            name,
             cir: 0,
             pmodes: 0,
             memory,
@@ -104,8 +105,11 @@ impl IntCodeMachine {
         self.cir += 1;
         let opcode = op % 100;
         self.pmodes = op / 100;
-//        println!("Decode");
         OpCode::from(opcode)
+    }
+
+    fn log(&self, msg: &str) {
+//        println!("{}: {}", self.name, msg)
     }
 
     fn pmode(&mut self) -> PMode {
@@ -114,11 +118,11 @@ impl IntCodeMachine {
         PMode::from(pmode)
     }
 
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(mut self) -> Result<IntCodeMachine> {
+        self.log("Started");
         loop {
-            print!("Decoding...");
+            self.log("Decoding");
             let opcode = self.decode();
-            println!("OK");
 
             match opcode {
                 OpCode::Add => {
@@ -132,16 +136,14 @@ impl IntCodeMachine {
                     self.store(a * b);
                 }
                 OpCode::Read => {
-                    print!("Reading... ");
+                    self.log("Reading");
                     let value = self.input.next().await.expect("Read");
-                    println!("OK");
                     self.store(value);
                 }
                 OpCode::Write => {
-                    print!("Writing... ");
+                    self.log("Writing");
                     let value = self.load();
                     self.output.send(value).await.expect("Write");
-                    println!("OK");
                 }
                 OpCode::JumpIf => {
                     let a = self.load();
@@ -171,7 +173,7 @@ impl IntCodeMachine {
                 _ => return Err(anyhow!("Mfuck")),
             };
         }
-        Ok(())
+        Ok(self)
     }
 }
 
@@ -191,56 +193,61 @@ fn main() -> Result<()> {
         })
         .collect();
 
-//    let part_a_mem = memory.clone();
-//
-//    let part_one = task::spawn(async move {
-//        println!("Running part A");
-//        for a in 0..5 {
-//            for b in 0..5 {
-//                if a == b {continue}
-//                for c in 0..5 {
-//                    if a == c  || b == c {continue}
-//                    for d in 0..5 {
-//                        if a == d  || b == d || c == d {continue}
-//                        for e in 0..5 {
-//                            if a == e  || b == e || c == e || d == e {continue}
-//                            let phases = vec![a, b, c, d, e];
-//                            let mut phase = phases.clone().into_iter();
-//                            let (mut input, recv) = channel::<isize>(2);
-//                            input.send(phase.next().unwrap()).await.expect("Phase Write");
-//                            input.send(0).await.expect("Init Level Write");
-//
-//                            let mut recv: Option<Receiver<isize>> = Some(recv);
-//
-//                            let mut machines = vec![];
-//                            for v in 0..5 {
-//                                let (mut out, recv_next) = channel(2);
-//                                if v < 4 {
-//                                    out.send(phase.next().unwrap()).await.expect("Phase Write");
-//                                }
-//                                machines.push(IntCodeMachine::new(part_a_mem.clone(), recv.take().unwrap(), out));
-//                                recv = Some(recv_next)
-//                            }
-//
-//                            for m in machines.iter_mut() {
-//                                m.run().await;
-//                            }
-//
-//                            let output = recv.take().unwrap().next().await.unwrap();
-//
-//                            if output > max {
-//                                max = output
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        println!("max output A {}", max);
-//    });
-//    task::block_on(part_one);
+    let program = memory.clone();
 
-    let part_two = task::spawn(async move {
+    let part_one = async move {
+        println!("Running part A");
+        for a in 0..5 {
+            for b in 0..5 {
+                if a == b {continue}
+                for c in 0..5 {
+                    if a == c  || b == c {continue}
+                    for d in 0..5 {
+                        if a == d  || b == d || c == d {continue}
+                        for e in 0..5 {
+                            if a == e  || b == e || c == e || d == e {continue}
+                            let phases = vec![a, b, c, d, e];
+                            let mut phase = phases.clone().into_iter();
+                            let (mut input, recv) = channel::<isize>(2);
+                            input.send(phase.next().unwrap()).await.expect("Phase Write");
+                            input.send(0).await.expect("Init Level Write");
+
+                            let mut recv: Option<Receiver<isize>> = Some(recv);
+
+                            let mut machines = vec![];
+                            for v in 0..5 {
+                                let (mut out, recv_next) = channel(2);
+                                if v < 4 {
+                                    out.send(phase.next().unwrap()).await.expect("Phase Write");
+                                }
+                                machines.push(IntCodeMachine::new(format!("M{}", v), memory.clone(), recv.take().unwrap(), out));
+                                recv = Some(recv_next)
+                            }
+
+                            let mut runs = vec![];
+                            for m in machines.into_iter() {
+                                runs.push(m.run())
+                            }
+                            let mut results: Vec<Result<IntCodeMachine, Error>> = futures::future::join_all(runs).await.drain(..).collect();
+
+                            if let Some(mut recv) = recv {
+                                let output = recv.next().await.unwrap();
+                                if output > max {
+                                    max = output
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!("max output A {}", max);
+    };
+
+    let mut pool = LocalPool::new();
+    pool.run_until(part_one);
+
+    let part_two = async move {
         println!("Running part B");
         for a in 5..10 {
             for b in 5..10 {
@@ -264,7 +271,7 @@ fn main() -> Result<()> {
                                 if v < 4 {
                                     out.send(phase.next().unwrap()).await.expect("Phase Write");
                                 }
-                                machines.push(IntCodeMachine::new(memory.clone(), recv.take().unwrap(), out));
+                                machines.push(IntCodeMachine::new(format!("M{}", v), program.clone(), recv.take().unwrap(), out));
                                 recv = Some(recv_next)
                             }
 
@@ -272,15 +279,17 @@ fn main() -> Result<()> {
                             machines[4].output.send(phase_zero).await.unwrap();
                             machines[4].output.send(0).await.unwrap();
 
-                            for m in machines.iter_mut() {
-                                println!("Running machine");
-                                m.run().await;
+                            let mut runs = vec![];
+                            for m in machines.into_iter() {
+                                runs.push(m.run())
                             }
+                            let mut results: Vec<Result<IntCodeMachine, Error>> = futures::future::join_all(runs).await.drain(..).collect();
 
-                            let output = machines[0].input.next().await.unwrap();
-                            println!("phases {:?} output {} ", phases, output);
-                            if output > max {
-                                max = output
+                            if let Ok(r) = results.get_mut(0).unwrap() {
+                                let output = r.input.next().await.unwrap();
+                                if output > max {
+                                    max = output
+                                }
                             }
                         }
                     }
@@ -288,8 +297,8 @@ fn main() -> Result<()> {
             }
         }
         println!("max output B {}", max);
-    });
-    task::block_on(part_two);
+    };
+    pool.run_until(part_two);
 
     Ok(())
 }

@@ -5,6 +5,10 @@ use strum::*;
 use strum_macros::*;
 use std::collections::{ HashMap};
 use std::sync::mpsc::{Receiver, sync_channel, SyncSender};
+use futures_executor::LocalPool;
+use futures_channel::mpsc::*;
+use futures::stream::Stream;
+
 
 #[repr(usize)]
 #[derive(EnumIter, Debug, Clone, Copy)]
@@ -85,6 +89,10 @@ impl IntCodeMachine {
         self.cir = 0;        
     }
 
+    fn log(&self, msg: &str) {
+//        println!("{}: {}", self.name, msg)
+    }
+
     fn load(&mut self) -> isize {
         let param = *self.paged(self.cir);
         self.cir += 1;
@@ -134,7 +142,7 @@ impl IntCodeMachine {
         PMode::from(pmode)
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub async fn run(mut self) -> Result<Self> {
         loop {
             let opcode = self.decode();
             match opcode {
@@ -187,7 +195,7 @@ impl IntCodeMachine {
                 OpCode::Halt => break,
             };
         }
-        Ok(())
+        Ok(self)
     }
 }
 
@@ -209,15 +217,16 @@ fn main() -> Result<()> {
     let (out_sender, _out_recv) = sync_channel(2);
     let mut machine = IntCodeMachine::new(in_recv, out_sender);
 
-    // part A
+
+    let mut pool = LocalPool::new();
     machine.init(&program);
     in_sender.send(1)?;
-    machine.run()?;
+    machine = pool.run_until(machine.run())?;
 
-    // part B
     machine.init(&program);
     in_sender.send(2)?;
-    machine.run()?;
+    machine = pool.run_until(machine.run())?;
+
 
     println!();
     println!("page size: {} pages: {}", PAGE_SIZE, machine.pages.len());

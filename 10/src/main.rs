@@ -3,6 +3,7 @@ use std::io;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use anyhow::*;
+use std::collections::HashMap;
 
 fn main() -> Result<()> {
     let f = File::open("10/input")?;
@@ -11,8 +12,20 @@ fn main() -> Result<()> {
         .filter_map(|x| x.ok())
         .collect();
 
-    println!("min steps");
+    let mut asteroids = HashMap::new();
 
+    let mut y = 0;
+    for line in file.lines() {
+        for (x, b) in line?.as_bytes().iter().enumerate() {
+            match *b as char {
+                '#' => {asteroids.insert(x, y);},
+                _ => {}
+            }
+        }
+        y += 1;
+    }
+
+    println!("min steps");
     Ok(())
 }
 
