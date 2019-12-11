@@ -1,6 +1,6 @@
-use std::io;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::io;
 
 fn ratio(mass: i32) -> i32 {
     mass / 3 - 2

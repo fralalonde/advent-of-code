@@ -1,4 +1,3 @@
-use std::io;
 use anyhow::*;
 use linked_hash_set::*;
 use std::collections::{HashMap, HashSet};
@@ -77,7 +76,7 @@ fn main() -> Result<()> {
     );
     let san_path: LinkedHashSet<String> = objects
         .values()
-        .flat_map(|o| to_root(&objects, &Some("SAN".to_string()), vec![]))
+        .flat_map(|_o| to_root(&objects, &Some("SAN".to_string()), vec![]))
         .collect();
 
     let cross = objects

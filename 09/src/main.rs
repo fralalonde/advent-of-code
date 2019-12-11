@@ -217,7 +217,6 @@ fn main() -> Result<()> {
     let (out_sender, _out_recv) = sync_channel(2);
     let mut machine = IntCodeMachine::new(in_recv, out_sender);
 
-
     let mut pool = LocalPool::new();
     machine.init(&program);
     in_sender.send(1)?;
