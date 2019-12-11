@@ -204,13 +204,18 @@ impl IntCodeMachine {
 }
 
 struct RoboPaint {
-    canvas: Vec<Vec<String>>,
+    canvas: Vec<Vec<&'static str>>,
     x: usize,
     y: usize,
     dir: usize,
+    panels: usize,
     input: Receiver<isize>,
     _output: Sender<isize>,
 }
+
+static OK: &str = "\u{2588}\u{2588}";
+static NONO: &str = ". ";
+static NO: &str = "  ";
 
 impl RoboPaint {
     fn new(input: Receiver<isize>, _output: Sender<isize>) -> Self {
@@ -218,7 +223,7 @@ impl RoboPaint {
         for _ in 0..40 {
             let mut row = Vec::new();
             for _ in 0..120 {
-                row.push("  ".to_string())
+                row.push(NO)
             }
             canvas.push(row);
         }
@@ -228,6 +233,7 @@ impl RoboPaint {
             x: 60,
             y: 20,
             dir: 0,
+            panels: 0,
             input,
             _output
         }
@@ -235,31 +241,32 @@ impl RoboPaint {
 
     async fn run(mut self) -> Self {
         loop {
-            println!("look");
-            let color = match self.canvas[self.y][self.x] {
-                "  " => 0,
-                _ => 1,
-            };
+            let color = if self.canvas[self.y][self.x] == OK { 1 } else { 0 };
             self._output.send(color).await;
 
-            println!("paint");
             if let Some(z) = self.input.next().await {
+                if self.canvas[self.y][self.x] == NO {
+                    self.panels += 1
+                }
                 match z {
-                    0 => { self.canvas[self.y][self.x] = "  ".to_string(); },
-                    1 => { self.canvas[self.y][self.x] = "\u{2588}\u{2588}".to_string(); }
+                    0 => { self.canvas[self.y][self.x] = NONO; },
+                    1 => { self.canvas[self.y][self.x] = OK; },
 //                    _ => panic!("m'fuck!")
-                    _ => for r in self.canvas {
-                        for c in r {
-                            print!("{}", c);
+                    _ => {
+                        self.canvas.reverse();
+                        for r in &self.canvas {
+                            for c in r {
+                                print!("{}", c);
+                            }
+                            println!();
                         }
-                        println!();
+                        println!("panels {}", self.panels);
                     }
                 }
             } else {
                 break
             }
 
-            println!("move");
             if let Some(z) = self.input.next().await {
                 match z {
                     0 => self.dir -= 1,
