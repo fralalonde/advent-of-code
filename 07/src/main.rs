@@ -1,18 +1,10 @@
-use std::io;
-//use std::env;
 use anyhow::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use strum::*;
 use strum_macros::*;
-use std::collections::VecDeque;
-use std::rc::Rc;
 use futures_channel::mpsc::*;
-use futures::stream::Stream;
-use std::cell::RefCell;
-use futures::task::Poll;
-use futures::future::PollFn;
-use futures::{StreamExt, SinkExt, Future};
+use futures::{StreamExt, SinkExt};
 use futures_executor::LocalPool;
 
 #[repr(usize)]
@@ -60,7 +52,6 @@ impl From<usize> for OpCode {
 }
 
 struct IntCodeMachine {
-    name: String,
     cir: usize,
     pmodes: usize,
     memory: Vec<isize>,
@@ -68,14 +59,9 @@ struct IntCodeMachine {
     output: Sender<isize>,
 }
 
-struct RecvPoll {
-    input: Receiver<isize>
-}
-
 impl IntCodeMachine {
-    fn new(name: String, memory: Vec<isize>, input: Receiver<isize>, output: Sender<isize>) -> Self {
+    fn new(memory: Vec<isize>, input: Receiver<isize>, output: Sender<isize>) -> Self {
         IntCodeMachine {
-            name,
             cir: 0,
             pmodes: 0,
             memory,
@@ -108,7 +94,7 @@ impl IntCodeMachine {
         OpCode::from(opcode)
     }
 
-    fn log(&self, msg: &str) {
+    fn log(&self, _msg: &str) {
 //        println!("{}: {}", self.name, msg)
     }
 
@@ -170,8 +156,7 @@ impl IntCodeMachine {
                     self.store(if a == b { 1 } else { 0 });
                 }
                 OpCode::Halt => break,
-                _ => return Err(anyhow!("Mfuck")),
-            };
+            }
         }
         Ok(self)
     }
@@ -182,7 +167,7 @@ fn main() -> Result<()> {
     let f = File::open("07/input").unwrap();
     let file = BufReader::new(&f);
     let mut max = 0;
-    let mut memory: Vec<isize> = file
+    let program: Vec<isize> = file
         .lines()
         .into_iter()
         .filter_map(|x| x.ok())
@@ -193,7 +178,7 @@ fn main() -> Result<()> {
         })
         .collect();
 
-    let program = memory.clone();
+    let mem1  = program.clone();
 
     let part_one = async move {
         println!("Running part A");
@@ -220,7 +205,7 @@ fn main() -> Result<()> {
                                 if v < 4 {
                                     out.send(phase.next().unwrap()).await.expect("Phase Write");
                                 }
-                                machines.push(IntCodeMachine::new(format!("M{}", v), memory.clone(), recv.take().unwrap(), out));
+                                machines.push(IntCodeMachine::new(mem1.clone(), recv.take().unwrap(), out));
                                 recv = Some(recv_next)
                             }
 
@@ -228,7 +213,7 @@ fn main() -> Result<()> {
                             for m in machines.into_iter() {
                                 runs.push(m.run())
                             }
-                            let mut results: Vec<Result<IntCodeMachine, Error>> = futures::future::join_all(runs).await.drain(..).collect();
+                            let _results: Vec<Result<IntCodeMachine, Error>> = futures::future::join_all(runs).await.drain(..).collect();
 
                             if let Some(mut recv) = recv {
                                 let output = recv.next().await.unwrap();
@@ -244,6 +229,7 @@ fn main() -> Result<()> {
         println!("max output A {}", max);
     };
 
+    let mem2  = program.clone();
     let mut pool = LocalPool::new();
     pool.run_until(part_one);
 
@@ -260,7 +246,7 @@ fn main() -> Result<()> {
                             if a == e  || b == e || c == e || d == e {continue}
                             let phases = vec![a, b, c, d, e];
                             let mut phase = phases.clone().into_iter();
-                            let (mut input, recv) = channel::<isize>(2);
+                            let (_input, recv) = channel::<isize>(2);
                             let phase_zero = phase.next().unwrap();
 
                             let mut recv: Option<Receiver<isize>> = Some(recv);
@@ -271,7 +257,7 @@ fn main() -> Result<()> {
                                 if v < 4 {
                                     out.send(phase.next().unwrap()).await.expect("Phase Write");
                                 }
-                                machines.push(IntCodeMachine::new(format!("M{}", v), program.clone(), recv.take().unwrap(), out));
+                                machines.push(IntCodeMachine::new(mem2.clone(), recv.take().unwrap(), out));
                                 recv = Some(recv_next)
                             }
 
@@ -305,7 +291,6 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::IntCodeMachine;
 
     #[test]
     fn tests() {
