@@ -1,0 +1,13 @@
+[package]
+name = "day11"
+version = "0.1.0"
+authors = ["Francis Lalonde <fralalonde@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.25"
+strum = "0.16.0"
+strum_macros = "0.16.0"
+futures-channel = "0.3.1"
+futures-executor = "0.3.1"
+futures = "0.3.1"
