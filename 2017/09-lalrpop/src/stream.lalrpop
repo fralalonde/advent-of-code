@@ -1,0 +1,39 @@
+use ::Node;
+
+grammar;
+
+pub group: Node = {
+    "{" <b:group_body> r"},?" => Node::Group(b),
+};
+
+group_body: Vec<Node> = {
+    <b:group_body> <s:group_segment> => {let mut n = b.clone(); n.push(s); n},
+    <s:group_segment> => vec![s],
+};
+
+group_segment: Node = {
+    group,
+    garbage,
+};
+
+garbage: Node = {
+    "<" <g:garbage_body> ">" => Node::Garbage(g)
+};
+
+garbage_body: Vec<String> = {
+    <b:garbage_body> <s:garbage_segment> =>  {let mut c = b.clone(); c.push(s); c},
+    <s:garbage_segment> => vec![s],
+};
+
+garbage_segment: String = {
+    chars,
+    ignored,
+};
+
+chars: String = {
+    <s:r"[^!^>]*"> => s.to_string(),
+};
+
+ignored: String = {
+    <s:r"!."> => s.to_string(),
+};

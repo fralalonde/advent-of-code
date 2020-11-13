@@ -1,0 +1,8 @@
+[package]
+name = "day10"
+version = "0.1.0"
+authors = ["Francis Lalonde <fralalonde@gmail.com>"]
+
+[dependencies]
+regex = "1.1.0"
+linked-list = "0.0.3"

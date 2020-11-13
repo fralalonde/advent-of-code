@@ -1,0 +1,32 @@
+grammar;
+
+pub group: () = {
+    "{" group_body "}",
+};
+
+group_body: () = {
+    garbage,
+    group,
+};
+
+garbage: () = {
+    "<" garbage_body ">",
+};
+
+garbage_body: () = {
+    garbage_body garbage_segment,
+    garbage_segment,
+};
+
+garbage_segment: () = {
+    ignored,
+    chars,
+};
+
+chars: () = {
+    r"[^!]*",
+};
+
+ignored: () = {
+    r"!.",
+};

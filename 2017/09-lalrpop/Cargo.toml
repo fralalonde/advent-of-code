@@ -1,0 +1,13 @@
+[package]
+name = "day6"
+version = "0.1.0"
+authors = ["Francis Lalonde <fralalonde@gmail.com>"]
+
+[build-dependencies]
+lalrpop = "0.13.1"
+
+[dependencies]
+#combine = "2.5.2"
+failure = "0.1.1"
+lalrpop-util = "0.13.1"
+regex = "0.2.1"
