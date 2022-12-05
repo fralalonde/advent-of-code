@@ -40,8 +40,8 @@ fn main() -> io::Result<()> {
             let z = bytes.len() / 2;
             let a = &bytes[..z];
             let b = &bytes[z..];
-            pri(dup(a, b)) as u32
-        }).sum::<u32>();
+            pri(dup(a, b)) as usize
+        }).sum::<usize>();
 
     println!("score 1 {}", score);
 
@@ -50,10 +50,10 @@ fn main() -> io::Result<()> {
 
     let score = file.lines().into_iter()
         .filter_map(|x| x.map(|z| z.into_bytes()).ok()).into_iter()
-        .fold((vec![], 0u32), |mut acc: (Vec<Vec<u8>>, u32), line| {
+        .fold((vec![], 0usize), |mut acc: (Vec<Vec<u8>>, usize), line| {
             acc.0.push(line);
             if acc.0.len() == 3 {
-                acc.1 += pri(badge(acc.0[0].as_ref(), acc.0[1].as_ref(), acc.0[2].as_ref())) as u32;
+                acc.1 += pri(badge(acc.0[0].as_ref(), acc.0[1].as_ref(), acc.0[2].as_ref())) as usize;
                 (vec![], acc.1)
             } else {
                 acc

@@ -15,16 +15,16 @@ fn main() -> io::Result<()> {
             groups.push(curr);
             curr = vec![];
         } else {
-            let p = line.parse::<u32>().unwrap();
+            let p = line.parse::<usize>().unwrap();
             curr.push(p);
         }
     }
     groups.push(curr);
 
-    let mut sums: Vec<_> = groups.into_iter().map(|v| v.into_iter().sum::<u32>()).collect();
+    let mut sums: Vec<_> = groups.into_iter().map(|v| v.into_iter().sum::<usize>()).collect();
     sums.sort();
     println!("part 1 {}", sums.iter().rev().next().unwrap());
-    println!("part 2 {}",  sums.iter().rev().into_iter().take(3).sum::<u32>());
+    println!("part 2 {}",  sums.iter().rev().into_iter().take(3).sum::<usize>());
 
     Ok(())
 }

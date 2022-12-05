@@ -6,7 +6,7 @@ use std::io;
 use crate::LWD::{Draw, Lose, Win};
 use crate::RPS::{Paper, Rock, Scissors};
 
-#[repr(u32)]
+#[repr(usize)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum RPS {
     Rock = 1,
@@ -42,7 +42,7 @@ fn play(opp: RPS, out: LWD) -> RPS {
 }
 
 
-#[repr(u32)]
+#[repr(usize)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum LWD {
     Lose = 0,
@@ -69,14 +69,14 @@ impl From<(RPS, RPS)> for LWD {
             Lose
         } else if opp == Scissors && play == Rock {
             Win
-        } else if play as u32 > opp as u32 {
+        } else if play as usize > opp as usize {
             Win
         } else { Lose }
     }
 }
 
-fn points(lwd: LWD, play: RPS) -> u32 {
-    lwd as u32 + play as u32
+fn points(lwd: LWD, play: RPS) -> usize {
+    lwd as usize + play as usize
 }
 
 fn main() -> io::Result<()> {
@@ -92,7 +92,7 @@ fn main() -> io::Result<()> {
             let lwd = LWD::from((opp, play));
             let p = points(lwd, play);
             p
-        }).sum::<u32>();
+        }).sum::<usize>();
 
     println!("score 1 {}", score);
 
@@ -107,7 +107,7 @@ fn main() -> io::Result<()> {
             let play = play(opp, lwd);
             let p = points(lwd, play);
             p
-        }).sum::<u32>();
+        }).sum::<usize>();
 
     println!("score 2 {}", score);
 
