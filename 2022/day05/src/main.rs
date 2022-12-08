@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::io;
 use std::str::FromStr;
 
 use regex::Regex;
@@ -58,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     let mut st = stacks.clone();
 
     for m in &moves {
-        // can't have two mut slices at once :( 
+        // can't have two mut slices at once :(
         let y = st[m.1 - 1].len() - m.0;
         let z = Vec::from(&st[m.1 - 1][y..]);
         st[m.1 - 1].truncate(y);
@@ -70,8 +69,6 @@ fn main() -> anyhow::Result<()> {
     }
     println!();
 
-
-    // println!("score A {:?}", full);
     Ok(())
 }
 
