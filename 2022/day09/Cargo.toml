@@ -1,0 +1,13 @@
+[package]
+name = "day09"
+version = "0.1.0"
+authors = ["Francis Lalonde <fralalonde@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+regex = "1.7"
+anyhow = "1.0"
+linked-hash-map = "0.5"
+linked_hash_set = "0.1"
+ascii = "1.1"
+lazy_static = "1.4"
