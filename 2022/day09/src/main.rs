@@ -1,32 +1,9 @@
 use std::cmp::max;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
-use regex::internal::Input;
 use regex::Regex;
-// use ascii::AsciiString;
-// use ascii::AsAsciiStr;
-// use lazy_static::lazy_static;
 
-///     let ascii = read_ascii(file);
-///     let _ = ascii[0].get_ascii(0);
-// fn read_ascii(buf: impl BufRead) -> Vec<AsciiString> {
-//     buf.lines().filter_map(|x| x.ok()).into_iter()
-//         .map(|x| AsciiString::from_ascii(x).unwrap())
-//         .collect()
-// }
-
-// fn read_strings(buf: impl BufRead) -> Vec<String> {
-//     buf.lines().filter_map(|x| x.ok()).into_iter()
-//         .collect()
-// }
-
-// fn read_bytes(buf: impl BufRead) -> Vec<Vec<u8>> {
-//     buf.lines().filter_map(|x| x.ok()).into_iter()
-//         .map(|x| x.into_bytes())
-//         .collect()
-// }
 use linked_hash_set::LinkedHashSet;
 
 fn follow(head: (i32, i32), mut tail: &mut (i32, i32)) {
@@ -74,17 +51,12 @@ fn animate(file: impl BufRead, rlen: usize) -> anyhow::Result<Vec<LinkedHashSet<
             _ => panic!("fff")
         };
 
-        for i in 0..m.1 {
+        for _ in 0..m.1 {
             mv(&mut rope[0], rel);
 
-
             for i in 0..rlen  {
-
                 follow(rope[i], &mut rope[i + 1]);
                 visited[i].insert(rope[i + 1]);
-                if rope[i] != rope[i + 1] {
-                    println!("A {} {}/{} :: H {:?}  T {:?}", m.0, i + 1, m.1, rope[i], rope[i + 1]);
-                }
             }
         }
     }
@@ -110,7 +82,6 @@ fn main() -> anyhow::Result<()> {
 mod tests {
     // use std::borrow::Borrow;
     use std::io::BufReader;
-    use regex::internal::Input;
     use crate::animate;
 
     static INPUT1: &str = r"R 4
