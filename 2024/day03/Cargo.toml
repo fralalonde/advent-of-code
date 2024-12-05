@@ -1,0 +1,13 @@
+[package]
+name = "day03"
+version = "0.1.0"
+authors = ["Francis Lalonde <fralalonde@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+
+[profile.release]
+opt-level = "z"              # Optimize for binary size
+lto = "fat"                  # Link-time optimization across all crates
+codegen-units = 1            # Single codegen unit for better optimizations
