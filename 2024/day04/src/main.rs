@@ -1,12 +1,7 @@
-#![feature(coroutines, coroutine_trait, stmt_expr_attributes)]
-
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::time::Instant;
-
-use std::ops::{Coroutine, CoroutineState};
-use std::ops::CoroutineState::Yielded;
-use std::pin::Pin;
 
 fn main() -> anyhow::Result<()> {
     let f = File::open(format!("{}/input", env!("CARGO_PKG_NAME")))?;
@@ -29,35 +24,82 @@ pub struct Grid {
     pub data: Vec<Vec<u8>>,
 }
 
+pub struct Pix (u8, usize, usize);
+
 impl Grid {
-    pub fn rot45ccw(&self) -> Vec<Vec<u8>> {
+    fn width(&self) -> usize {
+        self.data[0].len()
+    }
+
+    fn height(&self) -> usize {
+        self.data.len()
+    }
+
+    fn down_left(&self, mut col: usize, mut row: usize) -> Vec<Pix> {
+        let mut line = vec![];
+        while row < self.height() {
+            line.push(Pix(self.data[row][col], row, col));
+            row += 1;
+            if col == 0 { break; }
+            col -= 1;
+        }
+        line
+    }
+
+    fn down_right(&self, mut col: usize, mut row: usize) -> Vec<Pix> {
+        let mut line = vec![];
+        while row < self.height() && col < self.width() {
+            line.push(Pix(self.data[row][col], row, col));
+            row += 1;
+            col += 1;
+        }
+        line
+    }
+
+    fn down(&self, col: usize) -> Vec<Pix> {
+        let mut line = vec![];
+        for row in 0..self.height() {
+            line.push(Pix(self.data[row][col], row, col));
+        }
+        line
+    }
+
+    pub fn rot0(&self) -> Vec<Vec<Pix>> {
         let mut lines = vec![];
-
-        let height = self.data.len();
-        let width = self.data[0].len();
-
-        for start in 0..width {
-            let mut line = vec![];
-            let mut col = start;
-            for row in 0..height {
-                col -= 1;
-                if col < 0 { break; }
-                line.push(self.data[row][col]);
-            }
-            lines.push(line)
+        for (row, line) in self.data.iter().enumerate() {
+            lines.push(line.iter().enumerate().map(|(col, ch)| Pix(*ch, row, col)).collect())
         }
+        lines
+    }
 
-        for start in 1..height {
-            let mut line = vec![];
-            let mut col = start;
-            for row in 0..height {
-                col -= 1;
-                if col < 0 { break; }
-                line.push(self.data[row][col]);
-            }
-            lines.push(line)
+    pub fn rot45ccw(&self) -> Vec<Vec<Pix>> {
+        let mut lines = vec![];
+        for col in 0..self.width() {
+            lines.push(self.down_left(col, 0))
         }
+        let edge = self.width() - 1;
+        for row in 1..self.height() {
+            lines.push(self.down_left(edge, row))
+        }
+        lines
+    }
 
+    pub fn rot45cw(&self) -> Vec<Vec<Pix>> {
+        let mut lines = vec![];
+        for col in (0..self.width()).rev() {
+            lines.push(self.down_right(col, 0))
+        }
+        for row in 1..self.height() {
+            lines.push(self.down_right(0, row))
+        }
+        lines
+    }
+
+    pub fn rot90(&self) -> Vec<Vec<Pix>> {
+        let mut lines = Vec::with_capacity(self.width());
+        for col in 0..self.width() {
+            lines.push(self.down(col))
+        }
         lines
     }
 }
@@ -75,36 +117,56 @@ pub fn parse(file: File) -> anyhow::Result<Grid> {
 const XMAS: &[u8] = b"XMAS";
 const SAMX: &[u8] = b"SAMX";
 
-fn count(line: &[u8], pattern: &[u8]) -> usize {
+fn count(line: &[Pix], pattern: &[u8]) -> usize {
     line.windows(pattern.len())
-        .filter(|window| window.starts_with(pattern))
+        .map(|w| w.iter().map(|p| p.0).collect::<Vec<u8>>())
+        .filter(|window| window.eq(pattern))
         .count()
 }
 
-fn count2(line: &[u8], pattern: &[u8]) -> usize {
-    line.windows(pattern.len())
-        .filter(|window| window.starts_with(pattern))
-        .count()
+const SAM: &[u8] = b"SAM";
+const MAS: &[u8] = b"MAS";
+
+fn center(line: &[Pix], pattern: &[u8]) -> Vec<(usize, usize)> {
+    let mut centers = vec![];
+    let off = pattern.len() / 2;
+    for  i in line.windows(pattern.len())
+        .map(|w| w.iter().map(|p| p.0).collect::<Vec<u8>>())
+        .enumerate()
+        .filter(|window| window.1.eq(pattern))
+        .map(|w| w.0) {
+        centers.push((line[i + off].1, line[i + off].2))
+    }
+    centers
 }
 
 pub fn part1(grid: &Grid) -> anyhow::Result<usize> {
     let mut sum = 0;
-    sum += grid.data.iter().map(|line| count(line, XMAS) + count(line, SAMX)).sum::<usize>();
+    sum += grid.rot0().iter().map(|line| count(&line, XMAS) + count(&line, SAMX)).sum::<usize>();
     #[cfg(test)] println!("0 {}", sum);
-    sum += grid.rot90().map(|line| count(&line, XMAS) + count(&line, SAMX)).sum::<usize>();
+    sum += grid.rot90().iter().map(|line| count(&line, XMAS) + count(&line, SAMX)).sum::<usize>();
     #[cfg(test)] println!("90 {}", sum);
-    let mut v = grid.rot45ccw();
-    while let Yielded(line) = Pin::new(&mut v).resume(()) {
-        sum += count2(line, XMAS) + count2(line, SAMX)
-    }
+    sum += grid.rot45ccw().iter().map(|line| count(&line, XMAS) + count(&line, SAMX)).sum::<usize>();
     #[cfg(test)] println!("-45 {}", sum);
-    sum += grid.rot45cw().map(|line| count(&line, XMAS) + count(&line, SAMX)).sum::<usize>();
+    sum += grid.rot45cw().iter().map(|line| count(&line, XMAS) + count(&line, SAMX)).sum::<usize>();
     #[cfg(test)] println!("45 {}", sum);
     Ok(sum)
 }
 
-pub fn part2(grid: &Grid) -> anyhow::Result<isize> {
-    Ok(0)
+pub fn part2(grid: &Grid) -> anyhow::Result<usize> {
+    let mut centers1 = HashSet::new();
+
+    for line  in &grid.rot45ccw() {
+        centers1.extend(center(line, MAS));
+        centers1.extend(center(line, SAM))
+    }
+    let mut centers2 = HashSet::new();
+    for line  in &grid.rot45cw() {
+        centers2.extend(center(line, MAS));
+        centers2.extend(center(line, SAM))
+    }
+
+    Ok(centers2.intersection(&centers1).count())
 }
 
 #[cfg(test)]
@@ -116,10 +178,8 @@ mod test {
     fn p1() -> anyhow::Result<()> {
         let f = File::open("test")?;
         let pp = parse(f)?;
-
         let z = part1(&pp)?;
         assert_eq!(z, 18);
-
         Ok(())
     }
 
@@ -127,10 +187,8 @@ mod test {
     fn p2() -> anyhow::Result<()> {
         let f = File::open("test2")?;
         let pp = parse(f)?;
-
         let z = part2(&pp)?;
-        assert_eq!(z, 48);
-
+        assert_eq!(z, 9);
         Ok(())
     }
 }
