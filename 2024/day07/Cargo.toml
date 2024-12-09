@@ -1,12 +1,15 @@
 [package]
-name = "day05"
+name = "day07"
 version = "0.1.0"
 authors = ["Francis Lalonde <fralalonde@gmail.com>"]
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-nom = "7"
+regex = "1.7.0"
+#nom = "7"
+strum = "0.26"
+strum_macros = "0.26"
 
 [profile.release]
 opt-level = "z"              # Optimize for binary size
